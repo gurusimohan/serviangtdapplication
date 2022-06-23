@@ -1,0 +1,94 @@
+{
+	"AWSTemplateFormatVersion": "2010-09-09",
+	"Description": "Template for deploy Servian GTD Application",
+	"Resources": {
+		"GTDAppTaskDefinition": {
+			"Type": "AWS::ECS::TaskDefinition",
+			"Properties": {
+				"RequiresCompatibilities": [
+					"FARGATE"
+				],
+				"ExecutionRoleArn": "arn:aws:iam::418244921057:role/ecsTaskExecutionRole",
+				"TaskRoleArn": "arn:aws:iam::418244921057:role/ecsrdsrole",
+				"Cpu": 256,
+				"Memory": 512,
+				"NetworkMode": "awsvpc",
+				"ContainerDefinitions": [{
+					"Name": "GTDApplicationContainer",
+					"Image": "418244921057.dkr.ecr.ap-southeast-2.amazonaws.com/servian/techchallengeapp:latest",
+					"MemoryReservation": 256,
+					"Memory": 512,
+					"PortMappings": [{
+						"ContainerPort": 3000,
+						"Protocol": "tcp"
+					}],
+					"EntryPoint": [
+						"sh",
+						"-c"
+					],
+					"Command": [{
+						"Fn::Join": [
+							"\n",
+							[
+								"> ./conf.toml",
+								{
+									"Fn::Join": [
+										"",
+										[
+											"echo -e '",
+											"\"DbUser\" = \"",
+											{
+												"Fn::Join": [
+													"",
+													[
+														"{{resolve:secretsmanager:",
+														"arn:aws:secretsmanager:ap-southeast-2:418244921057:secret:gtdappdbsecrets-E4qCxb",
+														":SecretString:username}}"
+													]
+												]
+											},
+											"\"\\n",
+											"\"DbPassword\" = \"",
+											{
+												"Fn::Join": [
+													"",
+													[
+														"{{resolve:secretsmanager:",
+														"arn:aws:secretsmanager:ap-southeast-2:418244921057:secret:gtdappdbsecrets-E4qCxb",
+														":SecretString:password}}"
+													]
+												]
+											},
+											"\"\\n",
+											"\"DbName\" = \"GTDDatabase\"",
+											"\\n",
+											"\"DbPort\" = \"5432\"",
+											"\\n",
+											"\"DbHost\" = \"",
+											{
+												"Fn::Join": [
+													"",
+													[
+														"{{resolve:secretsmanager:",
+														"arn:aws:secretsmanager:ap-southeast-2:418244921057:secret:gtdappdbsecrets-E4qCxb",
+														":SecretString:username}}"
+													]
+												]
+											},
+											"\"\\n",
+											"\"ListenHost\" = \"0.0.0.0\"",
+											"\\n",
+											"\"ListenPort\" = \"3000\"' >> ./conf.toml"
+										]
+									]
+								},
+								"./TechChallengeApp updatedb -s",
+								"./TechChallengeApp serve"
+							]
+						]
+					}]
+				}]
+			}
+		}
+	}
+}
