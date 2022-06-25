@@ -1,0 +1,191 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: Template for deploy Servian GTD Application
+Resources:
+#######################################      IAM Roles for CodePipeline and Cloudformation     ##################################
+  GTDAppCodePipelineRole:
+    DependsOn:
+      - GTDAppCloudFormationRole
+    Type: 'AWS::IAM::Role'
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: codepipeline.amazonaws.com
+            Action:
+              - 'sts:AssumeRole'
+      Policies:
+        - PolicyName: CodePipelinePolicy
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Action:
+                  - 's3:GetObject'
+                  - 's3:GetObjectVersion'
+                  - 's3:GetBucketVersioning'
+                Resource: '*'
+                Effect: Allow
+              - Action:
+                  - 's3:PutObject'
+                Resource:
+                  - 'arn:aws:s3:::codepipeline*'
+                  - 'arn:aws:s3:::elasticbeanstalk*'
+                Effect: Allow
+              - Action:
+                  - 'codecommit:CancelUploadArchive'
+                  - 'codecommit:GetBranch'
+                  - 'codecommit:GetCommit'
+                  - 'codecommit:GetUploadArchiveStatus'
+                  - 'codecommit:UploadArchive'
+                Resource: '*'
+                Effect: Allow
+              - Action:
+                  - 'codedeploy:CreateDeployment'
+                  - 'codedeploy:GetApplicationRevision'
+                  - 'codedeploy:GetDeployment'
+                  - 'codedeploy:GetDeploymentConfig'
+                  - 'codedeploy:RegisterApplicationRevision'
+                Resource: '*'
+                Effect: Allow
+              - Action:
+                  - 'elasticbeanstalk:*'
+                  - 'ec2:*'
+                  - 'elasticloadbalancing:*'
+                  - 'autoscaling:*'
+                  - 'cloudwatch:*'
+                  - 's3:*'
+                  - 'sns:*'
+                  - 'cloudformation:*'
+                  - 'rds:*'
+                  - 'sqs:*'
+                  - 'ecs:*'
+                  - 'iam:PassRole'
+                Resource: '*'
+                Effect: Allow
+              - Action:
+                  - 'lambda:InvokeFunction'
+                  - 'lambda:ListFunctions'
+                Resource: '*'
+                Effect: Allow
+              - Action:
+                  - 'opsworks:CreateDeployment'
+                  - 'opsworks:DescribeApps'
+                  - 'opsworks:DescribeCommands'
+                  - 'opsworks:DescribeDeployments'
+                  - 'opsworks:DescribeInstances'
+                  - 'opsworks:DescribeStacks'
+                  - 'opsworks:UpdateApp'
+                  - 'opsworks:UpdateStack'
+                Resource: '*'
+                Effect: Allow
+              - Action:
+                  - 'cloudformation:CreateStack'
+                  - 'cloudformation:DeleteStack'
+                  - 'cloudformation:DescribeStacks'
+                  - 'cloudformation:UpdateStack'
+                  - 'cloudformation:CreateChangeSet'
+                  - 'cloudformation:DeleteChangeSet'
+                  - 'cloudformation:DescribeChangeSet'
+                  - 'cloudformation:ExecuteChangeSet'
+                  - 'cloudformation:SetStackPolicy'
+                  - 'cloudformation:ValidateTemplate'
+                  - 'iam:PassRole'
+                Resource: '*'
+                Effect: Allow
+              - Action:
+                  - 'codebuild:BatchGetBuilds'
+                  - 'codebuild:StartBuild'
+                Resource: '*'
+                Effect: Allow
+  GTDAppCloudFormationRole:
+    Type: 'AWS::IAM::Role'
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - cloudformation.amazonaws.com
+            Action:
+              - 'sts:AssumeRole'
+      Path: /
+      ManagedPolicyArns:
+        - 'arn:aws:iam::aws:policy/AmazonRDSFullAccess'
+        - 'arn:aws:iam::aws:policy/AmazonEC2FullAccess'
+        - 'arn:aws:iam::aws:policy/SecretsManagerReadWrite'
+        - 'arn:aws:iam::aws:policy/CloudWatchFullAccess'
+        - 'arn:aws:iam::aws:policy/AmazonECS_FullAccess'
+        - 'arn:aws:iam::aws:policy/AWSCloudFormationFullAccess'
+      Policies:
+        - PolicyName: IAMRoleCreationPolicy
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Action:
+                  - 'iam:CreateRole'
+                  - 'iam:DeleteRole'
+                  - 'iam:UpdateRole'
+                  - 'iam:PassRole'
+                  - 'iam:DetachRolePolicy'
+                  - 'iam:AttachRolePolicy'
+                Resource: '*'
+                Effect: Allow
+#######################################      GTDApplication CodeCommit Repository     ###########################################                
+  GTDAppCodeCommitRepository:
+    Type: 'AWS::CodeCommit::Repository'
+    Properties:
+      RepositoryName: GTDApplicationrepo
+      RepositoryDescription: This is a repository for depolying GTDApplication
+#######################################      S3 bucket for CodePipeline Artifacts     ###########################################      
+  S3BucketCodepipeline:
+    Type: 'AWS::S3::Bucket'
+#######################################      CodePipeline for GTD Application Deployment     ####################################     
+  GTDAppPipeline:
+    Type: 'AWS::CodePipeline::Pipeline'
+    Properties:
+      ArtifactStore:
+        Type: S3
+        Location: !Ref S3BucketCodepipeline
+      RoleArn: !GetAtt 
+        - GTDAppCodePipelineRole
+        - Arn
+      Stages:
+        - Name: Source
+          Actions:
+            - Name: SourceAction
+              ActionTypeId:
+                Category: Source
+                Owner: AWS
+                Version: '1'
+                Provider: CodeCommit
+              OutputArtifacts:
+                - Name: codecommitgtdappartifacts
+              Configuration:
+                BranchName: main
+                RepositoryName: !GetAtt 
+                  - GTDAppCodeCommitRepository
+                  - Name
+              RunOrder: 1
+        - Name: Deployment
+          Actions:
+            - Name: DeployAction
+              ActionTypeId:
+                Category: Deploy
+                Owner: AWS
+                Version: '1'
+                Provider: CloudFormation
+              InputArtifacts:
+                - Name: codecommitgtdappartifacts
+              OutputArtifacts:
+                - Name: cloudformationgtdappartifacts
+              Configuration:
+                ActionMode: CREATE_UPDATE
+                Capabilities: CAPABILITY_NAMED_IAM
+                StackName: gtdapplicationstack
+                TemplatePath: 'codecommitgtdappartifacts::gtdapplicationstack.yml'
+                RoleArn: !GetAtt 
+                  - GTDAppCloudFormationRole
+                  - Arn
+              RunOrder: 2
