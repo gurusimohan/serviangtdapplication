@@ -1,9 +1,9 @@
 ------------------------------------------------------------------------------------------------------------------
-Deployment instructions for Servian techchallenge application in AWS cloud environment.
+##Deployment instructions for Servian techchallenge application in AWS cloud environment.
 ------------------------------------------------------------------------------------------------------------------
 
 ******************************************************************************************************************
-				          General Instructions
+##				          General Instructions
 ******************************************************************************************************************
 1. gtdapplicationstack.yml    - Template for deploying infrastrctures and workloads.
 2. gtdapplicationpipeline.yml - Template for creating CI/CD codepipline for deploying GTD application.
@@ -13,7 +13,7 @@ Deployment instructions for Servian techchallenge application in AWS cloud envir
 
 
 ******************************************************************************************************************
-                                             Prerequisites
+##                                             Prerequisites
 ******************************************************************************************************************
 
 1. Make sure that below CIDR block is available for deploying network components such as VPC, Subnets, IGW, 
@@ -27,7 +27,7 @@ Deployment instructions for Servian techchallenge application in AWS cloud envir
         Database Subnet-B - 10.0.6.0/24
 
 ******************************************************************************************************************
-                                           Deployment Steps
+##                                           Deployment Steps
 ******************************************************************************************************************
 Step 1:
 	Clone the "serviangtdapplication" repository from github. Following files will be downloaded.
@@ -52,7 +52,7 @@ Step 4:
 	Open CloudFormation service and find the stack "gtdapplicationstack" and navigate to ouputs section to get the 
 	Application laod balancers DNS to access the GTD Application.
 ******************************************************************************************************************
-                                           Improvements 
+  ##                                         Improvements 
 ******************************************************************************************************************
 Security:
 	ALB can be integrate with WAF.
