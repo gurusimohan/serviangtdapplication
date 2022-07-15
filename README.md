@@ -58,6 +58,7 @@ Architecture:
 	ECS EC2 can be used for more control on the infrastructure but need to maintain server capacity.
 	Another Pipeline can be added to create the image using CodeBuild and upload it into ECR which will trigger the application
 	deployment pipeline.
+
 Logs:
 	VPC flow logs can be enabled for VPC, Subnets to troubleshoot the operational issues.
 	ALB access logs canbe enabled for monitor the traffic pattern.
